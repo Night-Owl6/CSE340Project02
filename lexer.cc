@@ -169,3 +169,66 @@ Token LexicalAnalyzer::GetTokenMain()
     }
 }
 
+// DELETE THIS LATER
+
+/*
+void ReadGrammar()
+{
+    vector<Rule> rules;
+    LexicalAnalyzer lexer;
+    Token token = lexer.GetToken();
+
+    // parse the input grammar and build the rule list
+    while (token.token_type != HASH) {
+        Rule r;
+        r.LHS = token.lexeme;
+        token = lexer.GetToken();
+        if (token.token_type == ARROW) {
+            // process right-hand side of production rule
+            token = lexer.GetToken();
+            while (token.token_type != STAR) {
+                if (token.token_type != ID) {
+                    cout << "Syntax error: expected identifier on line " << token.line_no << endl;
+                    return;
+                }
+                string rhs_symbol = token.lexeme;
+                token = lexer.GetToken();
+                while (token.token_type == STAR) {
+                    rhs_symbol += "*";
+                    token = lexer.GetToken();
+                }
+                r.RHS.push_back(rhs_symbol);
+            }
+            rules.push_back(r);
+        } else {
+            cout << "Syntax error: expected arrow on line " << token.line_no << endl;
+            return;
+        }
+        token = lexer.GetToken();
+    }
+
+    // build the list of terminal and non-terminal symbols
+    set<string> terminals, nonterminals;
+    for (auto rule : rules) {
+        nonterminals.insert(rule.LHS);
+        for (auto symbol : rule.RHS) {
+            if (nonterminals.find(symbol) == nonterminals.end()) {
+                terminals.insert(symbol);
+            } else {
+                nonterminals.insert(symbol);
+            }
+        }
+    }
+
+    // output the list of terminal and non-terminal symbols
+    for (auto terminal : terminals) {
+        cout << terminal << " ";
+    }
+    for (auto nonterminal : nonterminals) {
+        cout << nonterminal << " ";
+    }
+    cout << endl;
+}
+
+
+*/
