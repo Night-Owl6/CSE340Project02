@@ -3,13 +3,15 @@
  *               Rida Bazzi 2019
  * Do not share this file with anyone
  */
+#include <algorithm>
 #include <iostream>
 #include <cstdio>
 #include <cstdlib>
 #include "lexer.h"
-#include "set"
-#include <algorithm>
+#include <set>
 #include <vector>
+#include <string>
+
 using namespace std;
 
 struct Rule {
@@ -23,39 +25,6 @@ vector<string> terminals;
 vector<string> temp_nonterminals;
 vector<string> nonterminals;
 vector<string> unordered_terminals;
-
-/*
-Input Format
-
-Grammar ! Rule-list HASH
-Rule-list ! Rule Rule-list | Rule
-Id-list ! ID Id-list | ID
-Rule ! ID ARROW Right-hand-side STAR
-Right-hand-side ! Id-list | epsilon
-
-ID = letter (letter + digit)*
-STAR = '*'
-HASH = #
-ARROW = ->
-
-Input Example:
-
-decl -> idList colon ID *
-idList -> ID idList1 *
-idList1 -> *
-idList1 -> COMMA ID idList1 *
-#
-
-Non-Terminals = { decl, idList, idList1 }
-Terminals = { colon, ID, COMMA }
-
-Task one simply outputs the list of terminals in the order in which they appear in the grammar rules followed by the list of
-non-terminals in the order in which they appear in the grammar rules.
-
-Output Example:
-colon ID COMMA decl idList idList1
-
-*/
 
 // read grammar
 void ReadGrammar()
@@ -117,9 +86,6 @@ void ReadGrammar()
             nonterminals.push_back(t);
         }
     }
-
-    
-
 }
 
 // Task 1
@@ -139,7 +105,7 @@ void printTerminalsAndNoneTerminals()
 // Task 2
 void RemoveUselessSymbols()
 {
-    cout << "2\n";
+        
 }
 
 // Task 3
@@ -260,5 +226,87 @@ idList1         colon               idlist1     COMMA
                 ID
                 idlist1
                 COMMA
+
+*/
+
+
+/*
+// Task 2
+void RemoveUselessSymbols()
+{
+    // Identify start symbol
+    string startSymbol = rules[0].LHS;
+
+    // Build set of reachable non-terminals
+    set<string> reachableNonTerminals;
+    reachableNonTerminals.insert(startSymbol);
+    bool addedNew;
+    do {
+        addedNew = false;
+        for (const auto& r : rules) {
+            if (reachableNonTerminals.find(r.LHS) != reachableNonTerminals.end()) {
+                for (const auto& rhs : r.RHS) {
+                    bool allReachable = true;
+                    for (const auto& s : rhs) {
+                        if (nonterminals.find(s) != nonterminals.end() && reachableNonTerminals.find(s) == reachableNonTerminals.end()) {
+                            allReachable = false;
+                            break;
+                        }
+                    }
+                    if (allReachable) {
+                        for (const auto& s : rhs) {
+                            if (nonterminals.find(s) != nonterminals.end() && reachableNonTerminals.find(s) == reachableNonTerminals.end()) {
+                                reachableNonTerminals.insert(s);
+                                addedNew = true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    } while (addedNew);
+
+    // Remove unreachable non-terminals and productions
+    vector<Rule> newRules;
+    for (const auto& r : rules) {
+        if (reachableNonTerminals.find(r.LHS) != reachableNonTerminals.end()) {
+            vector<string> newRHS;
+            for (const auto& rhs : r.RHS) {
+                bool allReachable = true;
+                for (const auto& s : rhs) {
+                    if (nonterminals.find(s) != nonterminals.end() && reachableNonTerminals.find(s) == reachableNonTerminals.end()) {
+                        allReachable = false;
+                        break;
+                    }
+                }
+                if (allReachable) {
+                    newRHS.push_back(rhs);
+                }
+            }
+            if (!newRHS.empty()) {
+                Rule newRule{ r.LHS, newRHS };
+                newRules.push_back(newRule);
+            }
+        }
+    }
+    rules = newRules;
+
+    // Update terminal and nonterminal lists
+    set<string> newTerminals, newNonTerminals;
+    for (const auto& r : rules) {
+        newNonTerminals.insert(r.LHS);
+        for (const auto& rhs : r.RHS) {
+            for (const auto& s : rhs) {
+                if (nonterminals.find(s) == nonterminals.end()) {
+                    newTerminals.insert(s);
+                } else {
+                    newNonTerminals.insert(s);
+                }
+            }
+        }
+    }
+    terminals = vector<string>(newTerminals.begin(), newTerminals.end());
+    nonterminals = vector<string>(newNonTerminals.begin(), newNonTerminals.end());
+}
 
 */
