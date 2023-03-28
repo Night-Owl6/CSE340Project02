@@ -11,6 +11,7 @@
 #include <set>
 #include <vector>
 #include <string>
+#include <map>
 
 using namespace std;
 
@@ -91,7 +92,6 @@ void ReadGrammar()
 // Task 1
 void printTerminalsAndNoneTerminals()
 {
-   
     for (const auto& t : terminals) {
         cout << t << " ";
     }
@@ -99,13 +99,103 @@ void printTerminalsAndNoneTerminals()
     for (const auto& t : nonterminals) {
         cout << t << " ";
     }
-
 }
 
 // Task 2
 void RemoveUselessSymbols()
 {
-        
+    map<string, bool> UniverseSymbols;
+    map<string, bool> UniReachableSymbols;
+    vector<Rule> RulesGen;
+
+    //step 1: set all terminals as generating symbols
+    for (const auto& t : terminals) {
+        UniverseSymbols[t] = true;  // add terminals as their value as generating symbols
+        UniReachableSymbols[t] = false; // step 4 - set all non-terminals as non-reachable symbols
+    }
+    for (const auto& t : nonterminals) {
+        UniverseSymbols[t] = false;  // add non-terminals set their value as non generating symbols
+        UniReachableSymbols[t] = false; // step 4 - set all non-terminals as non reachable symbols
+    }
+
+    bool changed = true;    // tracker variable if something is changed
+    while (changed) {
+            changed = false; 
+            for( auto& r : rules) {
+                if (!UniverseSymbols[r.LHS]) { // check if LHS symbol is already generating
+                    if (r.RHS.empty()) {    // if RHS of rule is empty then LHS is generating - LHS -> epsilon
+                        UniverseSymbols[r.LHS] = true;
+                        changed = true;
+                    } else {
+                        bool allGenerating = true;
+                        for (const auto& s : r.RHS) {
+                            if (!UniverseSymbols[s]) {
+                                allGenerating = false;
+                                break;
+                            }
+                        }
+                        if (allGenerating) {
+                            UniverseSymbols[r.LHS] = true;
+                            changed = true;
+                        }
+                    }
+                }
+            }
+        }
+
+    // 3) Remove all non-generating symbols - RulesGen that only have rules that are generating
+    for (const auto& r : rules) {
+        if(UniverseSymbols[r.LHS]) {
+            bool allGenerating = true;
+            for (const auto& s : r.RHS) {
+                if (!UniverseSymbols[s]) {
+                    allGenerating = false;
+                    break;
+                }
+            }
+            if (allGenerating) {
+               RulesGen.push_back(r);
+            }
+        }
+    }
+
+    // 4) set all terminals and non-terminals as non-reachable symbols - done earlier
+
+    // 5) set start symbol as reachable
+    string startSymbol = RulesGen[0].LHS;
+    UniReachableSymbols[startSymbol] = true; // set start symbol as reachable
+
+    // 6) loop through all the rules
+    for (const auto& r : rules) {
+        if (r.LHS.compare(startSymbol) == 0 || UniReachableSymbols[r.LHS]) {
+            for (const auto& r2 : r.RHS) {
+                UniReachableSymbols[r2] = true; // set all RHS as reachable
+            }
+        } else {
+            // step 7 - if that rule is not reachable, remove it from vector<Rule>RulesGen
+            for (auto it = RulesGen.begin(); it != RulesGen.end(); ++it) {
+                if (it->LHS == r.LHS && it->RHS == r.RHS) {
+                    RulesGen.erase(it);
+                    break;
+                }
+            }
+        }
+    }
+
+    for (auto it = RulesGen.begin(); it != RulesGen.end(); ++it) {
+        if(it->RHS.empty()) {
+        it->RHS.push_back("#");
+        }
+    }
+
+    for (const auto& t : RulesGen) {
+        cout << t.LHS << " -> ";
+        for (const auto& s : t.RHS) {
+            cout << s << " ";
+        }
+        cout << endl;
+    }
+
 }
 
 // Task 3
@@ -170,54 +260,6 @@ int main (int argc, char* argv[])
     return 0;
 }
 
-//============================================================================
-
-/*
-Input Format
-The following context-free grammar specifies the input format:
-
-Grammar ! Rule-list HASH
-Rule-list ! Rule Rule-list | Rule
-Id-list ! ID Id-list | ID
-Rule ! ID ARROW Right-hand-side STAR
-Right-hand-side ! Id-list | epsilon
-
-The input consists of a rule list. Each rule has a lefthand side which is an ID, which is followed by an arrow and is followed by
-a sequence of zero more IDs and terminated with a STAR. The meaning of the input is explained in the Semantics section below.
-The tokens used in the above grammar description are defined by the following regular expressions:
-
-ID = letter (letter + digit)*
-STAR = '*'
-HASH = #
-ARROW = ->
-
-Where digit is the digits from 0 through 9 and letter is the upper and lower case letters a through z and A through Z.
-Tokens are case-sensitive. Tokens are space separated and there is at least one whitespace character between any two successive
-tokens. We provide a lexer with a geToken() function to recognize these tokens. You should use the provided lexer in you solution.
-*/
-
-/*
-Input Example:
-
-decl -> idList colon ID *
-idList -> ID idList1 *
-idList1 -> *
-idList1 -> COMMA ID idList1 *
-#
-
-The list of non-terminal symbols in the order in which they appear in the grammar is:
-Non-Terminals = { decl, idList, idList1 }
-The list of terminal symbols in the order in which they appear in the grammar is:
-Terminals = { colon, ID, COMMA }
-
-Task one simply outputs the list of terminals in the order in which they appear in the grammar rules followed by the list of
-non-terminals in the order in which they appear in the grammar rules.
-
-Output Example:
-colon ID COMMA decl idList idList1
-
-*/
-
 /*
 NT              UD                  NT           T
 decl            decl                decl        colon
@@ -226,87 +268,5 @@ idList1         colon               idlist1     COMMA
                 ID
                 idlist1
                 COMMA
-
-*/
-
-
-/*
-// Task 2
-void RemoveUselessSymbols()
-{
-    // Identify start symbol
-    string startSymbol = rules[0].LHS;
-
-    // Build set of reachable non-terminals
-    set<string> reachableNonTerminals;
-    reachableNonTerminals.insert(startSymbol);
-    bool addedNew;
-    do {
-        addedNew = false;
-        for (const auto& r : rules) {
-            if (reachableNonTerminals.find(r.LHS) != reachableNonTerminals.end()) {
-                for (const auto& rhs : r.RHS) {
-                    bool allReachable = true;
-                    for (const auto& s : rhs) {
-                        if (nonterminals.find(s) != nonterminals.end() && reachableNonTerminals.find(s) == reachableNonTerminals.end()) {
-                            allReachable = false;
-                            break;
-                        }
-                    }
-                    if (allReachable) {
-                        for (const auto& s : rhs) {
-                            if (nonterminals.find(s) != nonterminals.end() && reachableNonTerminals.find(s) == reachableNonTerminals.end()) {
-                                reachableNonTerminals.insert(s);
-                                addedNew = true;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    } while (addedNew);
-
-    // Remove unreachable non-terminals and productions
-    vector<Rule> newRules;
-    for (const auto& r : rules) {
-        if (reachableNonTerminals.find(r.LHS) != reachableNonTerminals.end()) {
-            vector<string> newRHS;
-            for (const auto& rhs : r.RHS) {
-                bool allReachable = true;
-                for (const auto& s : rhs) {
-                    if (nonterminals.find(s) != nonterminals.end() && reachableNonTerminals.find(s) == reachableNonTerminals.end()) {
-                        allReachable = false;
-                        break;
-                    }
-                }
-                if (allReachable) {
-                    newRHS.push_back(rhs);
-                }
-            }
-            if (!newRHS.empty()) {
-                Rule newRule{ r.LHS, newRHS };
-                newRules.push_back(newRule);
-            }
-        }
-    }
-    rules = newRules;
-
-    // Update terminal and nonterminal lists
-    set<string> newTerminals, newNonTerminals;
-    for (const auto& r : rules) {
-        newNonTerminals.insert(r.LHS);
-        for (const auto& rhs : r.RHS) {
-            for (const auto& s : rhs) {
-                if (nonterminals.find(s) == nonterminals.end()) {
-                    newTerminals.insert(s);
-                } else {
-                    newNonTerminals.insert(s);
-                }
-            }
-        }
-    }
-    terminals = vector<string>(newTerminals.begin(), newTerminals.end());
-    nonterminals = vector<string>(newNonTerminals.begin(), newNonTerminals.end());
-}
 
 */
