@@ -72,7 +72,7 @@ void ReadGrammar()
             }
             rules.push_back(r);
         } else {
-            cout << "1Syntax error: I did not catch the arrow";
+            cout << "SYNTAX ERROR";
             return;
         }
         token = lexer.GetToken();
